@@ -12,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 [assembly: FunctionsStartup(typeof(AzureDDNS.Startup))]
 
@@ -32,19 +33,35 @@ namespace AzureDDNS
             Validator.ValidateObject(settings, context);
         }
 
+        private OptionsBuilder<T> BindOptionAndValidate<T>(IServiceCollection services, string sectionName) where T : class 
+        {
+            return services.AddOptions<T>().Configure<IConfiguration>((settings, config) =>
+            {
+                config.GetSection(sectionName).Bind(settings);
+            }).PostConfigure(settings => ValidateWithDataAnnotation(settings));
+        }
+
         // This method gets called by the runtime. Use this method to add services to the container.
         private void ConfigureServices(IServiceCollection services)
         {
-            services.AddOptions<Settings.AzureLogin>().Configure<IConfiguration>((settings, config) =>
+            BindOptionAndValidate<Settings.AzureLogin>(services, "AzureLogin");
+            BindOptionAndValidate<Settings.DnsZone>(services, "DnsZone");
+            BindOptionAndValidate<Settings.Authorization>(services, "Authorization").PostConfigure(settings =>
             {
-                config.GetSection("AzureLogin").Bind(settings);
-            }).PostConfigure(settings => ValidateWithDataAnnotation(settings));
+                if (settings.Enabled)
+                {
+                    if (string.IsNullOrWhiteSpace(settings.Password))
+                    {
+                        throw new ValidationException("Password required");
+                    }
 
-            services.AddOptions<Settings.DnsZone>().Configure<IConfiguration>((settings, config) =>
-            {
-                config.GetSection("DnsZone").Bind(settings);
-            }).PostConfigure(settings => ValidateWithDataAnnotation(settings));
-            
+                    if (string.IsNullOrWhiteSpace(settings.Username))
+                    {
+                        throw new ValidationException("Username required");
+                    }
+                }
+            });
+
             services.AddSingleton<IDnsUpdateService, AzureDnsUpdateService>();
         }
 

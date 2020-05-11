@@ -1,17 +1,18 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using AzureDDNS.Services;
 using System.Net;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
+using System.Net.Http.Headers;
+using Microsoft.Net.Http.Headers;
+using Microsoft.Extensions.Options;
 
 namespace AzureDDNS
 {
@@ -19,20 +20,47 @@ namespace AzureDDNS
     {
         private readonly ILogger<UpdateFunction> logger;
         private readonly IDnsUpdateService dnsUpdateService;
+        private readonly Settings.Authorization auth;
 
-        public UpdateFunction(ILogger<UpdateFunction> logger, IDnsUpdateService dnsUpdateService)
+        public UpdateFunction(ILogger<UpdateFunction> logger, IDnsUpdateService dnsUpdateService, IOptions<Settings.Authorization> auth)
         {
             this.logger = logger;
             this.dnsUpdateService = dnsUpdateService;
+            this.auth = auth.Value;
         }
 
         [FunctionName("Update")]
-        //[Route("nic/update")]
-        public async Task<string> Update(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "nic/update")] HttpRequest req)
+        public async Task<string> Update([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "nic/update")] HttpRequest req)
         {
+            if (auth.Enabled)
+            {
+                string authorizationString = req.Headers[HeaderNames.Authorization];
+
+                if (string.IsNullOrWhiteSpace(authorizationString))
+                {
+                    return Badauth;
+                }
+
+                if (!AuthenticationHeaderValue.TryParse(authorizationString, out var authenticationHeaderValue))
+                {
+                    return Badauth;
+                }
+
+                if (authenticationHeaderValue.Scheme != "Basic" || authenticationHeaderValue.Parameter != auth.GetBase64AuthorizationString())
+                {
+                    return Badauth;
+                }
+            }
+
             string myip = req.Query["myip"];
             string hostname = req.Query["hostname"];
+
+            myip ??= string.Empty;
+
+            if (string.IsNullOrWhiteSpace(hostname))
+            {
+                return Nohost;
+            }
 
             logger.LogInformation(string.Format("Update requested with hostname {0}", hostname));
 
@@ -106,5 +134,6 @@ namespace AzureDDNS
         private const string Nochg = "nochg {0}";
         private const string Good = "good {0}";
         private const string Nohost = "nohost";
+        private const string Badauth = "badauth";
     }
 }
