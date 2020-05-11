@@ -6,23 +6,25 @@ using System.Threading.Tasks;
 using AzureDDNS.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+[assembly: FunctionsStartup(typeof(AzureDDNS.Startup))]
+
+
 namespace AzureDDNS
 {
-    public class Startup
-    {
-        public Startup(IConfiguration configuration)
-        {
-            Configuration = configuration;
-        }
 
-        public IConfiguration Configuration { get; }
+    public class Startup : FunctionsStartup
+    {
+        public override void Configure(IFunctionsHostBuilder builder)
+        {
+            ConfigureServices(builder.Services);
+        }
 
         private void ValidateWithDataAnnotation<T>(T settings)
         {
@@ -31,33 +33,20 @@ namespace AzureDDNS
         }
 
         // This method gets called by the runtime. Use this method to add services to the container.
-        public void ConfigureServices(IServiceCollection services)
+        private void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers();
+            services.AddOptions<Settings.AzureLogin>().Configure<IConfiguration>((settings, config) =>
+            {
+                config.GetSection("AzureLogin").Bind(settings);
+            }).PostConfigure(settings => ValidateWithDataAnnotation(settings));
 
-            services.Configure<Settings.AzureLogin>(Configuration.GetSection("AzureLogin")).PostConfigure<Settings.AzureLogin>(settings => ValidateWithDataAnnotation(settings));
-            services.Configure<Settings.DnsZone>(Configuration.GetSection("DnsZone")).PostConfigure<Settings.DnsZone>(settings => ValidateWithDataAnnotation(settings));
+            services.AddOptions<Settings.DnsZone>().Configure<IConfiguration>((settings, config) =>
+            {
+                config.GetSection("DnsZone").Bind(settings);
+            }).PostConfigure(settings => ValidateWithDataAnnotation(settings));
+            
             services.AddSingleton<IDnsUpdateService, AzureDnsUpdateService>();
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-        {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-
-            app.UseHttpsRedirection();
-
-            app.UseRouting();
-
-            app.UseAuthorization();
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-            });
-        }
     }
 }

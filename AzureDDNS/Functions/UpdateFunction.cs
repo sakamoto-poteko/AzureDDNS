@@ -1,34 +1,41 @@
-﻿using System;
+using System;
+using System.IO;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using AzureDDNS.Services;
+using System.Net;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Sockets;
-using System.Threading.Tasks;
-using AzureDDNS.Services;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
-namespace AzureDDNS.Controllers
+namespace AzureDDNS
 {
-    [Route("nic")]
-    [ApiController]
-    public class NicController : ControllerBase
+    public class UpdateFunction
     {
-        private readonly ILogger<NicController> logger;
+        private readonly ILogger<UpdateFunction> logger;
         private readonly IDnsUpdateService dnsUpdateService;
 
-        public NicController(ILogger<NicController> logger, IDnsUpdateService dnsUpdateService)
+        public UpdateFunction(ILogger<UpdateFunction> logger, IDnsUpdateService dnsUpdateService)
         {
             this.logger = logger;
             this.dnsUpdateService = dnsUpdateService;
         }
 
-        [HttpGet]
-        [Route("update")]
-        public async Task<string> Update([FromQuery] string hostname, [FromQuery] string myip)
+        [FunctionName("Update")]
+        //[Route("nic/update")]
+        public async Task<string> Update(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "nic/update")] HttpRequest req)
         {
+            string myip = req.Query["myip"];
+            string hostname = req.Query["hostname"];
+
             logger.LogInformation(string.Format("Update requested with hostname {0}", hostname));
+
             string[] ips = myip.Split(',');
             var addresses = ips.Select(s =>
             {
