@@ -29,27 +29,36 @@ namespace AzureDDNS
             this.auth = auth.Value;
         }
 
-        [FunctionName("Update")]
-        public async Task<string> Update([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "nic/update")] HttpRequest req)
+        [FunctionName("NoipUpdate")]
+        public async Task<string> NoipUpdate([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "nic/update")] HttpRequest req)
         {
-            if (auth.Enabled)
+            var authOk = CheckAuth(req);
+            if (!authOk)
             {
-                string authorizationString = req.Headers[HeaderNames.Authorization];
+                return Badauth;
+            }
 
-                if (string.IsNullOrWhiteSpace(authorizationString))
-                {
-                    return Badauth;
-                }
+            string myip = req.Query["myip"];
+            string hostname = req.Query["hostname"];
 
-                if (!AuthenticationHeaderValue.TryParse(authorizationString, out var authenticationHeaderValue))
-                {
-                    return Badauth;
-                }
+            myip ??= string.Empty;
 
-                if (authenticationHeaderValue.Scheme != "Basic" || authenticationHeaderValue.Parameter != auth.GetBase64AuthorizationString())
-                {
-                    return Badauth;
-                }
+            if (string.IsNullOrWhiteSpace(hostname))
+            {
+                return Nohost;
+            }
+
+            logger.LogInformation(string.Format("Update requested with hostname '{0}' and IP '{1}'", hostname, myip));
+            return await UpdateDnsRecord(myip, hostname);
+        }
+
+        [FunctionName("DynUpdate")]
+        public string DynUpdate([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v3")] HttpRequest req)
+        {
+            var authOk = CheckAuth(req);
+            if (!authOk)
+            {
+                return Badauth;
             }
 
             string myip = req.Query["myip"];
@@ -64,6 +73,44 @@ namespace AzureDDNS
 
             logger.LogInformation(string.Format("Update requested with hostname '{0}' and IP '{1}'", hostname, myip));
 
+            var hosts = hostname.Split(",");
+
+            var resultTasks = hosts.Select(h => UpdateDnsRecord(myip, h)).ToArray();
+            Task.WaitAll(resultTasks);
+
+            var results = resultTasks.Select(r => r.Result).ToList();
+            var result = string.Join("\n", results);
+
+            return result;
+        }
+
+        private bool CheckAuth(HttpRequest req)
+        {
+            if (auth.Enabled)
+            {
+                string authorizationString = req.Headers[HeaderNames.Authorization];
+
+                if (string.IsNullOrWhiteSpace(authorizationString))
+                {
+                    return false;
+                }
+
+                if (!AuthenticationHeaderValue.TryParse(authorizationString, out var authenticationHeaderValue))
+                {
+                    return false;
+                }
+
+                if (authenticationHeaderValue.Scheme != "Basic" || authenticationHeaderValue.Parameter != auth.GetBase64AuthorizationString())
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private async Task<string> UpdateDnsRecord(string myip, string hostname)
+        {
             string[] ips = myip.Split(',');
             var addresses = ips.Select(s =>
             {
