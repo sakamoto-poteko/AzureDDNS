@@ -62,7 +62,7 @@ namespace AzureDDNS
                 return Nohost;
             }
 
-            logger.LogInformation(string.Format("Update requested with hostname {0}", hostname));
+            logger.LogInformation(string.Format("Update requested with hostname '{0}' and IP '{1}'", hostname, myip));
 
             string[] ips = myip.Split(',');
             var addresses = ips.Select(s =>

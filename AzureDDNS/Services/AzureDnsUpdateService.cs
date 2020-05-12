@@ -32,14 +32,14 @@ namespace AzureDDNS.Services
 
             switch (settings.AzureCredentialType)
             {
-                case Settings.AzureCredentialType.ManagedIdentity:
-                    if (settings.AzureMsiType == Settings.AzureMsiType.Unknown)
-                    {
-                        throw new ArgumentOutOfRangeException(nameof(settings.AzureMsiType));
-                    }
-                    logger.LogInformation("Azure login with MSI");
-                    azureCredential = GetMsiCredential(settings);
-                    break;
+                //case Settings.AzureCredentialType.ManagedIdentity:
+                //    if (settings.AzureMsiType == Settings.AzureMsiType.Unknown)
+                //    {
+                //        throw new ArgumentOutOfRangeException(nameof(settings.AzureMsiType));
+                //    }
+                //    logger.LogInformation("Azure login with MSI");
+                //    azureCredential = GetMsiCredential(settings);
+                //    break;
                 case Settings.AzureCredentialType.TokenCredential:
                     logger.LogInformation("Azure login with token credential");
                     azureCredential = GetTokenCredential(settings);
@@ -103,17 +103,17 @@ namespace AzureDDNS.Services
             return azureCredential;
         }
 
-        private static AzureCredentials GetMsiCredential(Settings.AzureLogin settings)
-        {
-            var msiResourceType = settings.AzureMsiType switch
-            {
-                Settings.AzureMsiType.AppService => MSIResourceType.AppService,
-                Settings.AzureMsiType.VirtualMachine => MSIResourceType.VirtualMachine,
-                Settings.AzureMsiType.Unknown => throw new ArgumentOutOfRangeException(),
-                _ => throw new ArgumentOutOfRangeException()
-            };
-            return new AzureCredentialsFactory().FromMSI(new MSILoginInformation(msiResourceType), AzureEnvironment.AzureGlobalCloud);
-        }
+        //private static AzureCredentials GetMsiCredential(Settings.AzureLogin settings)
+        //{
+        //    var msiResourceType = settings.AzureMsiType switch
+        //    {
+        //        Settings.AzureMsiType.AppService => MSIResourceType.AppService,
+        //        Settings.AzureMsiType.VirtualMachine => MSIResourceType.VirtualMachine,
+        //        Settings.AzureMsiType.Unknown => throw new ArgumentOutOfRangeException(),
+        //        _ => throw new ArgumentOutOfRangeException()
+        //    };
+        //    return new AzureCredentialsFactory().FromMSI(new MSILoginInformation(msiResourceType), AzureEnvironment.AzureGlobalCloud);
+        //}
 
         #endregion
 

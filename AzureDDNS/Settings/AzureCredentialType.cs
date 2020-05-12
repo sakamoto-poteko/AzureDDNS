@@ -2,7 +2,7 @@
 {
     public enum AzureCredentialType
     {
-        ManagedIdentity,
+        //ManagedIdentity,
         TokenCredential,
         ServicePrincipal,
     }
