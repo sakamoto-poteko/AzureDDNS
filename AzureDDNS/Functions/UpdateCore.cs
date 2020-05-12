@@ -1,90 +1,30 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
+﻿using AzureDDNS.Services;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using AzureDDNS.Services;
-using System.Net;
+using Microsoft.Extensions.Options;
+using Microsoft.Net.Http.Headers;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Sockets;
+using System.Net;
 using System.Net.Http.Headers;
-using Microsoft.Net.Http.Headers;
-using Microsoft.Extensions.Options;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace AzureDDNS
+namespace AzureDDNS.Functions
 {
-    public class UpdateFunction
+    public class UpdateCore
     {
-        private readonly ILogger<UpdateFunction> logger;
         private readonly IDnsUpdateService dnsUpdateService;
         private readonly Settings.Authorization auth;
 
-        public UpdateFunction(ILogger<UpdateFunction> logger, IDnsUpdateService dnsUpdateService, IOptions<Settings.Authorization> auth)
+        public UpdateCore(IDnsUpdateService dnsUpdateService, IOptions<Settings.Authorization> auth)
         {
-            this.logger = logger;
             this.dnsUpdateService = dnsUpdateService;
             this.auth = auth.Value;
         }
 
-        [FunctionName("NoipUpdate")]
-        public async Task<string> NoipUpdate([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "nic/update")] HttpRequest req)
-        {
-            var authOk = CheckAuth(req);
-            if (!authOk)
-            {
-                return Badauth;
-            }
-
-            string myip = req.Query["myip"];
-            string hostname = req.Query["hostname"];
-
-            myip ??= string.Empty;
-
-            if (string.IsNullOrWhiteSpace(hostname))
-            {
-                return Nohost;
-            }
-
-            logger.LogInformation(string.Format("Update requested with hostname '{0}' and IP '{1}'", hostname, myip));
-            return await UpdateDnsRecord(myip, hostname);
-        }
-
-        [FunctionName("DynUpdate")]
-        public string DynUpdate([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v3")] HttpRequest req)
-        {
-            var authOk = CheckAuth(req);
-            if (!authOk)
-            {
-                return Badauth;
-            }
-
-            string myip = req.Query["myip"];
-            string hostname = req.Query["hostname"];
-
-            myip ??= string.Empty;
-
-            if (string.IsNullOrWhiteSpace(hostname))
-            {
-                return Nohost;
-            }
-
-            logger.LogInformation(string.Format("Update requested with hostname '{0}' and IP '{1}'", hostname, myip));
-
-            var hosts = hostname.Split(",");
-
-            var resultTasks = hosts.Select(h => UpdateDnsRecord(myip, h)).ToArray();
-            Task.WaitAll(resultTasks);
-
-            var results = resultTasks.Select(r => r.Result).ToList();
-            var result = string.Join("\n", results);
-
-            return result;
-        }
-
-        private bool CheckAuth(HttpRequest req)
+        public bool CheckAuth(HttpRequest req)
         {
             if (auth.Enabled)
             {
@@ -109,7 +49,7 @@ namespace AzureDDNS
             return true;
         }
 
-        private async Task<string> UpdateDnsRecord(string myip, string hostname)
+        public async Task<string> UpdateDnsRecord(string myip, string hostname)
         {
             string[] ips = myip.Split(',');
             var addresses = ips.Select(s =>
@@ -178,9 +118,9 @@ namespace AzureDDNS
             throw new NotImplementedException("Unexpected condition");
         }
 
-        private const string Nochg = "nochg {0}";
-        private const string Good = "good {0}";
-        private const string Nohost = "nohost";
-        private const string Badauth = "badauth";
+        public const string Nochg = "nochg {0}";
+        public const string Good = "good {0}";
+        public const string Nohost = "nohost";
+        public const string Badauth = "badauth";
     }
 }

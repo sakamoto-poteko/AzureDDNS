@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
+using AzureDDNS.Functions;
 using AzureDDNS.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -63,6 +64,7 @@ namespace AzureDDNS
             });
 
             services.AddSingleton<IDnsUpdateService, AzureDnsUpdateService>();
+            services.AddTransient<UpdateCore>();
         }
 
     }
