@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 
 namespace AzureDDNS.Services
 {
+    [Obsolete("Use AzureRmDnsUpdateService instead")]
     public class AzureDnsUpdateService : IDnsUpdateService
     {
         private readonly IDnsManagementClient dnsClient;

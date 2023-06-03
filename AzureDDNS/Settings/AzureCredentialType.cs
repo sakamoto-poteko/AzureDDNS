@@ -4,6 +4,7 @@
     {
         //ManagedIdentity,
         TokenCredential,
+        DefaultCredential = TokenCredential,
         ServicePrincipal,
     }
 }

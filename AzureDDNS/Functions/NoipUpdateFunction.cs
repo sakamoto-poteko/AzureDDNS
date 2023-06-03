@@ -19,22 +19,22 @@ namespace AzureDDNS
 {
     public class NoipUpdateFunction
     {
-        private readonly ILogger<NoipUpdateFunction> logger;
-        private readonly UpdateCore updateCore;
+        private readonly ILogger<NoipUpdateFunction> _logger;
+        private readonly UpdateCore _updateCore;
 
         public NoipUpdateFunction(ILogger<NoipUpdateFunction> logger, UpdateCore updateCore)
         {
-            this.logger = logger;
-            this.updateCore = updateCore;
+            this._logger = logger;
+            this._updateCore = updateCore;
         }
 
         [FunctionName("NoipUpdateFunction")]
         public async Task<string> NoipUpdate([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "nic/update")] HttpRequest req)
         {
-            var authOk = updateCore.CheckAuth(req);
+            bool authOk = _updateCore.CheckAuth(req);
             if (!authOk)
             {
-                return UpdateCore.Badauth;
+                return UpdateCore.ReplyBadauth;
             }
 
             string myip = req.Query["myip"];
@@ -44,11 +44,11 @@ namespace AzureDDNS
 
             if (string.IsNullOrWhiteSpace(hostname))
             {
-                return UpdateCore.Nohost;
+                return UpdateCore.ReplyNohost;
             }
 
-            logger.LogInformation(string.Format("Update requested with hostname '{0}' and IP '{1}'", hostname, myip));
-            return await updateCore.UpdateDnsRecord(myip, hostname);
+            _logger.LogInformation($"Update requested with hostname '{hostname}' and IP '{myip}'");
+            return await _updateCore.UpdateDnsRecord(myip, hostname);
         }
 
     }

@@ -15,38 +15,35 @@ namespace AzureDDNS.Functions
 {
     public class UpdateCore
     {
-        private readonly IDnsUpdateService dnsUpdateService;
-        private readonly Settings.Authorization auth;
+        private readonly IDnsUpdateService _dnsUpdateService;
+        private readonly Settings.Authorization _auth;
 
         public UpdateCore(IDnsUpdateService dnsUpdateService, IOptions<Settings.Authorization> auth)
         {
-            this.dnsUpdateService = dnsUpdateService;
-            this.auth = auth.Value;
+            _dnsUpdateService = dnsUpdateService;
+            _auth = auth.Value;
         }
 
         public bool CheckAuth(HttpRequest req)
         {
-            if (auth.Enabled)
+            if (!_auth.Enabled)
             {
-                string authorizationString = req.Headers[HeaderNames.Authorization];
+                return true;
+            }
+            
+            string authorizationString = req.Headers[HeaderNames.Authorization];
 
-                if (string.IsNullOrWhiteSpace(authorizationString))
-                {
-                    return false;
-                }
-
-                if (!AuthenticationHeaderValue.TryParse(authorizationString, out var authenticationHeaderValue))
-                {
-                    return false;
-                }
-
-                if (authenticationHeaderValue.Scheme != "Basic" || authenticationHeaderValue.Parameter != auth.GetBase64AuthorizationString())
-                {
-                    return false;
-                }
+            if (string.IsNullOrWhiteSpace(authorizationString))
+            {
+                return false;
             }
 
-            return true;
+            if (!AuthenticationHeaderValue.TryParse(authorizationString, out var authenticationHeaderValue))
+            {
+                return false;
+            }
+
+            return authenticationHeaderValue.Scheme == "Basic" && authenticationHeaderValue.Parameter == _auth.GetBase64AuthorizationString();
         }
 
         public async Task<string> UpdateDnsRecord(string myip, string hostname)
@@ -54,73 +51,59 @@ namespace AzureDDNS.Functions
             string[] ips = myip.Split(',');
             var addresses = ips.Select(s =>
             {
-                var ok = IPAddress.TryParse(s, out var address);
-                if (ok)
-                {
-                    return address;
-                }
-                else
-                {
-                    return null;
-                }
+                bool ok = IPAddress.TryParse(s, out var address);
+                return ok ? address : null;
             }).Where(addr => addr != null).ToList();
 
             if (addresses.Count == 0)
             {
-                var addr = await dnsUpdateService.GetDnsV4Async(hostname);
-                if (addr == IPAddress.None)
-                {
-                    return Nohost;
-                }
-                else
-                {
-                    return string.Format(Nochg, addr.ToString());
-                }
+                var addr = await _dnsUpdateService.GetDnsV4Async(hostname);
+                return addr.Equals( IPAddress.None) ? ReplyNohost : string.Format(ReplyNochg, addr.ToString());
             }
 
-            var v4Addr = addresses.Where(addr => addr.AddressFamily == AddressFamily.InterNetwork).FirstOrDefault();
-            var v6Addr = addresses.Where(addr => addr.AddressFamily == AddressFamily.InterNetworkV6).FirstOrDefault();
+            var v4Addr = addresses.FirstOrDefault(addr => addr.AddressFamily == AddressFamily.InterNetwork);
+            var v6Addr = addresses.FirstOrDefault(addr => addr.AddressFamily == AddressFamily.InterNetworkV6);
 
             DnsUpdateResult v4Result = DnsUpdateResult.Nochg, v6Result = DnsUpdateResult.Nochg;
 
-            List<IPAddress> returnAddr = new List<IPAddress>();
+            var returnAddr = new List<IPAddress>();
 
             if (v4Addr != null)
             {
-                v4Result = await dnsUpdateService.UpdateDnsV4Async(hostname, v4Addr);
+                v4Result = await _dnsUpdateService.UpdateDnsV4Async(hostname, v4Addr);
                 returnAddr.Add(v4Addr);
             }
 
             if (v6Addr != null)
             {
-                v6Result = await dnsUpdateService.UpdateDnsV6Async(hostname, v6Addr);
+                v6Result = await _dnsUpdateService.UpdateDnsV6Async(hostname, v6Addr);
                 returnAddr.Add(v6Addr);
             }
 
             if (v4Result == DnsUpdateResult.Nohost || v6Result == DnsUpdateResult.Nohost)
             {
-                return Nohost;
+                return ReplyNohost;
             }
 
-            var returnAddrStr = string.Join(",", returnAddr);
+            string returnAddrStr = string.Join(",", returnAddr);
 
             if (v4Result == DnsUpdateResult.Good || v6Result == DnsUpdateResult.Good)
             {
-                return string.Format(Good, returnAddrStr);
+                return string.Format(ReplyGood, returnAddrStr);
             }
 
             if (v4Result == DnsUpdateResult.Nochg && v6Result == DnsUpdateResult.Nochg)
             {
-                return string.Format(Nochg, returnAddrStr);
+                return string.Format(ReplyNochg, returnAddrStr);
             }
 
             // no conditions left
             throw new NotImplementedException("Unexpected condition");
         }
 
-        public const string Nochg = "nochg {0}";
-        public const string Good = "good {0}";
-        public const string Nohost = "nohost";
-        public const string Badauth = "badauth";
+        private const string ReplyNochg = "nochg {0}";
+        private const string ReplyGood = "good {0}";
+        public const string ReplyNohost = "nohost";
+        public const string ReplyBadauth = "badauth";
     }
 }

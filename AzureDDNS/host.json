@@ -6,7 +6,6 @@
   },
   "logging": {
     "applicationInsights": {
-      "samplingExcludedTypes": "Request",
       "samplingSettings": {
         "isEnabled": true
       }

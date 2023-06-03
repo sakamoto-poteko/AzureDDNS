@@ -12,18 +12,18 @@ namespace AzureDDNS.Settings
 
         public string Password { get; set; }
 
-        private string encodedAuthorizationString;
+        private string _encodedAuthorizationString;
         public string GetBase64AuthorizationString()
         {
-            if (encodedAuthorizationString == null)
-            {
-                if (!Enabled)
-                    return string.Empty;
+            if (_encodedAuthorizationString != null)
+                return _encodedAuthorizationString;
+            
+            if (!Enabled)
+                return string.Empty;
 
-                encodedAuthorizationString = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Username}:{Password}"));
-            }
+            _encodedAuthorizationString = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Username}:{Password}"));
 
-            return encodedAuthorizationString;
+            return _encodedAuthorizationString;
         }
     }
 }

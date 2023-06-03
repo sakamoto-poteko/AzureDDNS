@@ -13,5 +13,8 @@ namespace AzureDDNS.Settings
 
         [Required]
         public string ZoneName { get; set; }
+
+        [Required]
+        public string ZoneResourceId { get; set; }
     }
 }
