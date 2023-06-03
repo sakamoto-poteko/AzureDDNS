@@ -39,7 +39,7 @@ namespace AzureDDNS
             return services.AddOptions<T>().Configure<IConfiguration>((settings, config) =>
             {
                 config.GetSection(sectionName).Bind(settings);
-            }).PostConfigure(settings => ValidateWithDataAnnotation(settings));
+            }).PostConfigure(ValidateWithDataAnnotation);
         }
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -63,7 +63,8 @@ namespace AzureDDNS
                 }
             });
 
-            services.AddSingleton<IDnsUpdateService, AzureDnsUpdateService>();
+//            services.AddSingleton<IDnsUpdateService, AzureDnsUpdateService>();
+            services.AddSingleton<IDnsUpdateService, AzureRmDnsUpdateService>();
             services.AddTransient<UpdateCore>();
         }
 

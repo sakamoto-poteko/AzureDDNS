@@ -9,9 +9,6 @@ namespace AzureDDNS.Settings
     public class DnsZone
     {
         [Required]
-        public string ResourceGroup { get; set; }
-
-        [Required]
-        public string ZoneName { get; set; }
+        public string ZoneResourceId { get; set; }
     }
 }

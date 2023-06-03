@@ -1,16 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-    <AzureFunctionsVersion>v3</AzureFunctionsVersion>
+    <TargetFramework>net6.0</TargetFramework>
+    <AzureFunctionsVersion>v4</AzureFunctionsVersion>
     <UserSecretsId>f5a3a60a-9e40-43de-97ba-be63d58bf7c5</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Functions.Extensions" Version="1.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.0.0" />
-    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.1" />
-    <PackageReference Include="Microsoft.Azure.Management.Dns.Fluent" Version="1.33.0" />
-    <PackageReference Include="Microsoft.Azure.Management.Msi.Fluent" Version="1.33.0" />
-    <PackageReference Include="Microsoft.Azure.Services.AppAuthentication" Version="1.4.0" />
+    <PackageReference Include="Azure.Identity" Version="1.9.0" />
+    <PackageReference Include="Azure.ResourceManager.Dns" Version="1.0.1" />
+    <PackageReference Include="Microsoft.Azure.Functions.Extensions" Version="1.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
+    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="4.2.0" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">

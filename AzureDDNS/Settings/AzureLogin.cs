@@ -13,11 +13,7 @@ namespace AzureDDNS.Settings
         [JsonConverter(typeof(StringEnumConverter))]
         [Required]
         public AzureCredentialType AzureCredentialType { get; set; }
-
-        [JsonConverter(typeof(StringEnumConverter))]
-        [Required]
-        public AzureMsiType AzureMsiType { get; set; }
-
+        
         [Required]
         public string AzureSubscriptionId { get; set; }
 
