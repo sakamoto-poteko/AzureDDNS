@@ -3,6 +3,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using Azure;
 using Azure.Core;
 using Azure.Identity;
 using Azure.ResourceManager;
@@ -80,7 +81,8 @@ public class AzureRmDnsUpdateService : IDnsUpdateService
             throw new ArgumentOutOfRangeException(nameof(v4Address));
         }
 
-        var response = await _zoneResource.GetDnsARecordAsync(hostname);
+        var aCollection = _zoneResource.GetDnsARecords();
+        var response = await aCollection.GetAsync(hostname);
         // is it an existing record?
         if (response.HasValue)
         {
@@ -93,14 +95,12 @@ public class AzureRmDnsUpdateService : IDnsUpdateService
             // or the value is different?
             else
             {
-                var resourceId = recordResource.Id;
                 var data = new DnsARecordData()
                 {
                     DnsARecords = { new DnsARecordInfo() { IPv4Address = v4Address } },
-                    TtlInSeconds = 60,
-                    TargetResourceId = resourceId,
+                    TtlInSeconds = 5,
                 };
-                await recordResource.UpdateAsync(data);
+                await aCollection.CreateOrUpdateAsync(WaitUntil.Completed, hostname, data);
                 return DnsUpdateResult.Good;
             }
         }
@@ -118,7 +118,8 @@ public class AzureRmDnsUpdateService : IDnsUpdateService
             throw new ArgumentOutOfRangeException(nameof(v6Address));
         }
 
-        var response = await _zoneResource.GetDnsAaaaRecordAsync(hostname);
+        var aaaaCollection = _zoneResource.GetDnsAaaaRecords();
+        var response = await aaaaCollection.GetAsync(hostname);
         // is it an existing record?
         if (response.HasValue)
         {
@@ -131,14 +132,12 @@ public class AzureRmDnsUpdateService : IDnsUpdateService
             // or the value is different?
             else
             {
-                var resourceId = recordResource.Id;
                 var data = new DnsAaaaRecordData
                 {
                     DnsAaaaRecords = { new DnsAaaaRecordInfo() { IPv6Address = v6Address } },
-                    TtlInSeconds = 60,
-                    TargetResourceId = resourceId,
+                    TtlInSeconds = 5,
                 };
-                await recordResource.UpdateAsync(data);
+                await aaaaCollection.CreateOrUpdateAsync(WaitUntil.Completed, hostname, data);
                 return DnsUpdateResult.Good;
             }
         }

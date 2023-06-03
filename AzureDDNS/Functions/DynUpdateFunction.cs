@@ -27,21 +27,21 @@ namespace AzureDDNS.Functions
                 return UpdateCore.ReplyBadauth;
             }
 
-            string myip = req.Query["myip"];
+            string myIp = req.Query["myip"];
             string hostname = req.Query["hostname"];
 
-            myip ??= string.Empty;
+            myIp ??= string.Empty;
 
             if (string.IsNullOrWhiteSpace(hostname))
             {
                 return UpdateCore.ReplyNohost;
             }
 
-            _logger.LogInformation($"Update requested with hostname '{hostname}' and IP '{myip}'");
+            _logger.LogInformation("Update requested with hostname '{Hostname}' and IP '{MyIp}'", hostname, myIp);
 
             string[] hosts = hostname.Split(",");
 
-            var resultTasks = hosts.Select(h => _updateCore.UpdateDnsRecord(myip, h)).ToArray();
+            var resultTasks = hosts.Select(h => _updateCore.UpdateDnsRecord(myIp, h)).ToArray();
             Task.WaitAll(resultTasks);
 
             var results = resultTasks.Select(r => r.Result).ToList();

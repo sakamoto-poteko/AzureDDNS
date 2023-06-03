@@ -24,8 +24,8 @@ namespace AzureDDNS
 
         public NoipUpdateFunction(ILogger<NoipUpdateFunction> logger, UpdateCore updateCore)
         {
-            this._logger = logger;
-            this._updateCore = updateCore;
+            _logger = logger;
+            _updateCore = updateCore;
         }
 
         [FunctionName("NoipUpdateFunction")]
@@ -37,18 +37,18 @@ namespace AzureDDNS
                 return UpdateCore.ReplyBadauth;
             }
 
-            string myip = req.Query["myip"];
+            string myIp = req.Query["myip"];
             string hostname = req.Query["hostname"];
 
-            myip ??= string.Empty;
+            myIp ??= string.Empty;
 
             if (string.IsNullOrWhiteSpace(hostname))
             {
                 return UpdateCore.ReplyNohost;
             }
 
-            _logger.LogInformation($"Update requested with hostname '{hostname}' and IP '{myip}'");
-            return await _updateCore.UpdateDnsRecord(myip, hostname);
+            _logger.LogInformation("Update requested with hostname '{Hostname}' and IP '{MyIp}'", hostname, myIp);
+            return await _updateCore.UpdateDnsRecord(myIp, hostname);
         }
 
     }
